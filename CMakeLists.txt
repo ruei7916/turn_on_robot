@@ -33,17 +33,12 @@ endif()
 add_executable(base_node src/base_node.cpp src/serial.cc src/impl/unix.cc)
 ament_target_dependencies(base_node rclcpp geometry_msgs nav_msgs tf2_geometry_msgs tf2)
 
-add_executable(t src/test.cpp)
-ament_target_dependencies(t rclcpp geometry_msgs)
 
 install(
   TARGETS base_node
   DESTINATION lib/${PROJECT_NAME}
 )
-install(
-  TARGETS t
-  DESTINATION lib/${PROJECT_NAME}
-)
+
 # Install launch files.
 install(
   DIRECTORY launch
