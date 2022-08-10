@@ -15,7 +15,14 @@
 #define FRAME_HEADER      0X7B       // Frame header
 #define FRAME_TAIL        0X7D       // Frame tail
 #define SEND_DATA_SIZE    9          // The length of data sent by ROS to the lower machine 
-#define RECEIVE_DATA_SIZE    9          // The length of data sent by the lower machine to ROS
+#define RECEIVE_DATA_SIZE    11          // The length of data sent by the lower machine to ROS
+
+#define wheel_radius 3.0
+// half of the distance between front wheels
+#define wheel_spacing 
+// half of the distance between front wheel and rear wheel
+#define axle_spacing 
+
 
 class BaseNode : public rclcpp::Node
 {
@@ -84,12 +91,17 @@ class BaseNode : public rclcpp::Node
             //RCLCPP_INFO(this->get_logger(), "end frame");
             if(t==FRAME_TAIL){
               // finish receiving a frame
-              if(recv_data[7]==(recv_data[0]^recv_data[1]^recv_data[2]^recv_data[3]^recv_data[4]^recv_data[5]^recv_data[6])){
+              if(recv_data[9]==(recv_data[0]^recv_data[1]^recv_data[2]^recv_data[3]^recv_data[4]^recv_data[5]^recv_data[6]^recv_data[7]^recv_data[8])){
                 // received frame data correct
                 //RCLCPP_INFO(this->get_logger(), "received data from arduino");
-                float x = (int16_t)((recv_data[1]<<8)|recv_data[2])/1000.0;
-                float y = (int16_t)((recv_data[3]<<8)|recv_data[4])/1000.0;
-                float z = (int16_t)((recv_data[5]<<8)|recv_data[6])/1000.0;
+                float _1 = (int16_t)((recv_data[1]<<8)|recv_data[2])/1000.0;
+                float _2 = (int16_t)((recv_data[3]<<8)|recv_data[4])/1000.0;
+                float _3 = (int16_t)((recv_data[5]<<8)|recv_data[6])/1000.0;
+                float _4 = (int16_t)((recv_data[7]<<8)|recv_data[8])/1000.0;
+
+                float x = wheel_radius*((_2+_1+_4+_3)/4.0);
+                float y = wheel_radius*((_2-_1+_4-_3)/4.0);
+                float z = wheel_radius*((-_2-_1+_4+_3)/4.0/(axle_spacing+wheel_spacing));
                 float sampling_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-last_time).count()/1000000.0;
                 //RCLCPP_INFO(this->get_logger(),"%f",sampling_time);
                 px+=((x * cos(pz) - y * sin(pz)) * sampling_time); //Calculate the displacement in the X direction, unit: m 
