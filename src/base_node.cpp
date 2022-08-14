@@ -17,11 +17,11 @@
 #define SEND_DATA_SIZE    9          // The length of data sent by ROS to the lower machine 
 #define RECEIVE_DATA_SIZE    11          // The length of data sent by the lower machine to ROS
 
-#define wheel_radius 3.0
+#define wheel_radius 3.0/100 //meter
 // half of the distance between front wheels
-#define wheel_spacing 
+#define wheel_spacing 19.5/2.0/100 //meter
 // half of the distance between front wheel and rear wheel
-#define axle_spacing 
+#define axle_spacing 15.1/2.0/100 //meter
 
 
 class BaseNode : public rclcpp::Node
@@ -31,9 +31,11 @@ class BaseNode : public rclcpp::Node
     :Node("base_node")
     {
       rclcpp::QoS qos(rclcpp::KeepLast(1));
+      this->declare_parameter<bool>("imu_enabled", false);
       cmd_vel_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", qos, std::bind(&BaseNode::cmd_vel_callback, this, std::placeholders::_1));
       odom_publisher = this->create_publisher<nav_msgs::msg::Odometry>("odom", rclcpp::SensorDataQoS());
       tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+      this->get_parameter("imu_enabled", imu_enabled);
       // set up  serial connection
       try{
         arduino_serial.setPort("/dev/ttyACM0");
@@ -148,6 +150,10 @@ class BaseNode : public rclcpp::Node
                   memcpy(&odom.twist.covariance, odom_twist_covariance, sizeof(odom_twist_covariance));       
                 }
                 odom_publisher->publish(odom);
+                if(imu_enabled){
+                  // publish imu data
+                  
+                }
                 //RCLCPP_INFO(this->get_logger(), "odom publised");
                 last_time = std::chrono::steady_clock::now();
               }else{
@@ -201,6 +207,7 @@ class BaseNode : public rclcpp::Node
     std::thread poll_thread_;
     std::shared_future<void> future_;
     std::promise<void> exit_signal_;
+    bool imu_enabled;
 };
 
 int main(int argc, char * argv[])
