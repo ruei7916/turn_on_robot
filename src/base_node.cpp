@@ -90,17 +90,17 @@ class BaseNode : public rclcpp::Node
           if(recv_count==RECEIVE_DATA_SIZE){
             recv_count = 0;
             start_frame = false;
-            //RCLCPP_INFO(this->get_logger(), "end frame");
+            RCLCPP_INFO(this->get_logger(), "end frame");
             if(t==FRAME_TAIL){
               // finish receiving a frame
               if(recv_data[9]==(recv_data[0]^recv_data[1]^recv_data[2]^recv_data[3]^recv_data[4]^recv_data[5]^recv_data[6]^recv_data[7]^recv_data[8])){
                 // received frame data correct
-                //RCLCPP_INFO(this->get_logger(), "received data from arduino");
+                RCLCPP_INFO(this->get_logger(), "data correct");
                 float _1 = (int16_t)((recv_data[1]<<8)|recv_data[2])/1000.0;
                 float _2 = (int16_t)((recv_data[3]<<8)|recv_data[4])/1000.0;
                 float _3 = (int16_t)((recv_data[5]<<8)|recv_data[6])/1000.0;
                 float _4 = (int16_t)((recv_data[7]<<8)|recv_data[8])/1000.0;
-
+                RCLCPP_INFO(this->get_logger(), "%f < %f < %f < %f",_1,_2,_3,_4);
                 float x = wheel_radius*((_2+_1+_4+_3)/4.0);
                 float y = wheel_radius*((_2-_1+_4-_3)/4.0);
                 float z = wheel_radius*((-_2-_1+_4+_3)/4.0/(axle_spacing+wheel_spacing));
@@ -109,7 +109,7 @@ class BaseNode : public rclcpp::Node
                 px+=((x * cos(pz) - y * sin(pz)) * sampling_time); //Calculate the displacement in the X direction, unit: m 
                 py+=((x * sin(pz) + y * cos(pz)) * sampling_time); //Calculate the displacement in the Y direction, unit: m 
                 pz+=(z * sampling_time); //The angular displacement about the Z axis, in rad 
-                //RCLCPP_INFO(this->get_logger(),"%lf %lf %lf",px,py,pz);
+                RCLCPP_INFO(this->get_logger(),"%f %f %f",px,py,pz);
 
                 tf2::Quaternion odom_quat;
                 odom_quat.setRPY(0,0,pz);
@@ -150,14 +150,14 @@ class BaseNode : public rclcpp::Node
                   memcpy(&odom.twist.covariance, odom_twist_covariance, sizeof(odom_twist_covariance));       
                 }
                 odom_publisher->publish(odom);
+                RCLCPP_INFO(this->get_logger(), "odom publised");
                 if(imu_enabled){
                   // publish imu data
                   
                 }
-                //RCLCPP_INFO(this->get_logger(), "odom publised");
                 last_time = std::chrono::steady_clock::now();
               }else{
-                //RCLCPP_INFO(this->get_logger(), "data error");
+                RCLCPP_INFO(this->get_logger(), "data error");
               }
             }
           }
