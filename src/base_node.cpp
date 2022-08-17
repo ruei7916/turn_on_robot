@@ -17,11 +17,11 @@
 #define SEND_DATA_SIZE    9          // The length of data sent by ROS to the lower machine 
 #define RECEIVE_DATA_SIZE    11          // The length of data sent by the lower machine to ROS
 
-#define wheel_radius 3.0/100 //meter
+#define wheel_radius (3.0/100) //meter
 // half of the distance between front wheels
-#define wheel_spacing 19.5/2.0/100 //meter
+#define wheel_spacing (19.5/2.0/100) //meter
 // half of the distance between front wheel and rear wheel
-#define axle_spacing 15.1/2.0/100 //meter
+#define axle_spacing (15.1/2.0/100) //meter
 
 
 class BaseNode : public rclcpp::Node
@@ -101,11 +101,13 @@ class BaseNode : public rclcpp::Node
                 float _3 = (int16_t)((recv_data[5]<<8)|recv_data[6])/1000.0;
                 float _4 = (int16_t)((recv_data[7]<<8)|recv_data[8])/1000.0;
                 RCLCPP_INFO(this->get_logger(), "%f < %f < %f < %f",_1,_2,_3,_4);
+                float sampling_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-last_time).count()/1000000.0;
+                last_time = std::chrono::steady_clock::now();
                 float x = wheel_radius*((_2+_1+_4+_3)/4.0);
                 float y = wheel_radius*((_2-_1+_4-_3)/4.0);
                 float z = wheel_radius*((-_2-_1+_4+_3)/4.0/(axle_spacing+wheel_spacing));
                 RCLCPP_INFO(this->get_logger(),"%f %f %f",x,y,z);
-                float sampling_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-last_time).count()/1000000.0;
+                
                 //RCLCPP_INFO(this->get_logger(),"%f",sampling_time);
                 px+=((x * cos(pz) - y * sin(pz)) * sampling_time); //Calculate the displacement in the X direction, unit: m 
                 py+=((x * sin(pz) + y * cos(pz)) * sampling_time); //Calculate the displacement in the Y direction, unit: m 
@@ -156,7 +158,7 @@ class BaseNode : public rclcpp::Node
                   // publish imu data
                   
                 }
-                last_time = std::chrono::steady_clock::now();
+                
               }else{
                 RCLCPP_INFO(this->get_logger(), "data error");
               }
