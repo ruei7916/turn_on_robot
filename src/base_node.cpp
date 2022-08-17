@@ -104,12 +104,13 @@ class BaseNode : public rclcpp::Node
                 float x = wheel_radius*((_2+_1+_4+_3)/4.0);
                 float y = wheel_radius*((_2-_1+_4-_3)/4.0);
                 float z = wheel_radius*((-_2-_1+_4+_3)/4.0/(axle_spacing+wheel_spacing));
+                RCLCPP_INFO(this->get_logger(),"%f %f %f",x,y,z);
                 float sampling_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-last_time).count()/1000000.0;
                 //RCLCPP_INFO(this->get_logger(),"%f",sampling_time);
                 px+=((x * cos(pz) - y * sin(pz)) * sampling_time); //Calculate the displacement in the X direction, unit: m 
                 py+=((x * sin(pz) + y * cos(pz)) * sampling_time); //Calculate the displacement in the Y direction, unit: m 
                 pz+=(z * sampling_time); //The angular displacement about the Z axis, in rad 
-                RCLCPP_INFO(this->get_logger(),"%f %f %f",px,py,pz);
+                RCLCPP_INFO(this->get_logger(),"p %f %f %f",px,py,pz);
 
                 tf2::Quaternion odom_quat;
                 odom_quat.setRPY(0,0,pz);
