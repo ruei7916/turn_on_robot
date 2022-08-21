@@ -40,7 +40,7 @@ class BaseNode : public rclcpp::Node
       try{
         arduino_serial.setPort("/dev/ttyACM0");
         arduino_serial.setBaudrate(38400);
-        serial::Timeout _time = serial::Timeout::simpleTimeout(1000);
+        serial::Timeout _time = serial::Timeout::simpleTimeout(2000);
         arduino_serial.setTimeout(_time);
         arduino_serial.open();
         arduino_serial.setDTR();
@@ -79,7 +79,7 @@ class BaseNode : public rclcpp::Node
       float pz=0;
       std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
       do {
-        if(arduino_serial.available()){
+        //if(arduino_serial.available()){
           arduino_serial.read(&t, 1);
           if(start_frame){
             recv_data[recv_count++]=t;
@@ -166,7 +166,7 @@ class BaseNode : public rclcpp::Node
               }
             }
           }
-        }
+        //}
         status = future_.wait_for(std::chrono::seconds(0));
       } while (status == std::future_status::timeout);
     }
