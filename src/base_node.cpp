@@ -81,6 +81,7 @@ class BaseNode : public rclcpp::Node
       do {
         //if(arduino_serial.available()){
           arduino_serial.read(&t, 1);
+          RCLCPP_INFO(this->get_logger(), "");
           if(start_frame){
             recv_data[recv_count++]=t;
           }
