@@ -79,9 +79,9 @@ class BaseNode : public rclcpp::Node
       float pz=0;
       std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
       do {
-        //if(arduino_serial.available()){
+        if(arduino_serial.available()){RCLCPP_INFO(this->get_logger(), "a");}
           arduino_serial.read(&t, 1);
-          RCLCPP_INFO(this->get_logger(), "");
+          RCLCPP_INFO(this->get_logger(), "%d", t);
           if(start_frame){
             recv_data[recv_count++]=t;
           }
