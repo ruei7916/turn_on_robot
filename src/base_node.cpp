@@ -39,10 +39,11 @@ class BaseNode : public rclcpp::Node
       // set up  serial connection
       try{
         arduino_serial.setPort("/dev/ttyACM0");
-        arduino_serial.setBaudrate(115200);
+        arduino_serial.setBaudrate(38400);
         serial::Timeout _time = serial::Timeout::simpleTimeout(5000);
         arduino_serial.setTimeout(_time);
         arduino_serial.open();
+        arduino_serial.setDTR(DTR_CONTROL_ENABLE);
       }
       
       catch(serial::IOException& e){
