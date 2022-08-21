@@ -40,10 +40,10 @@ class BaseNode : public rclcpp::Node
       try{
         arduino_serial.setPort("/dev/ttyACM0");
         arduino_serial.setBaudrate(38400);
-        serial::Timeout _time = serial::Timeout::simpleTimeout(5000);
+        serial::Timeout _time = serial::Timeout::simpleTimeout(1000);
         arduino_serial.setTimeout(_time);
         arduino_serial.open();
-        arduino_serial.setDTR(DTR_CONTROL_ENABLE);
+        arduino_serial.setDTR();
       }
       
       catch(serial::IOException& e){
