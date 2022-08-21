@@ -44,6 +44,7 @@ class BaseNode : public rclcpp::Node
         arduino_serial.setTimeout(_time);
         arduino_serial.open();
         arduino_serial.setDTR();
+        arduino_serial.setRTS();
       }
       
       catch(serial::IOException& e){
