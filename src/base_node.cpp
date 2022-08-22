@@ -17,11 +17,12 @@
 #define SEND_DATA_SIZE    9          // The length of data sent by ROS to the lower machine 
 #define RECEIVE_DATA_SIZE    11          // The length of data sent by the lower machine to ROS
 
-#define wheel_radius (3.0/100) //meter
+// wheel radius
+#define wheel_radius (3.0/100) // unit: meter
 // half of the distance between front wheels
-#define wheel_spacing (19.5/2.0/100) //meter
+#define wheel_spacing (19.5/2.0/100) // unit: meter
 // half of the distance between front wheel and rear wheel
-#define axle_spacing (15.1/2.0/100) //meter
+#define axle_spacing (15.1/2.0/100) // unit: meter
 
 
 class BaseNode : public rclcpp::Node
@@ -79,9 +80,9 @@ class BaseNode : public rclcpp::Node
       float pz=0;
       std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
       do {
-        if(arduino_serial.available()){RCLCPP_INFO(this->get_logger(), "a");}
+        if(arduino_serial.available()){//RCLCPP_INFO(this->get_logger(), "a");}
           arduino_serial.read(&t, 1);
-          RCLCPP_INFO(this->get_logger(), "t= %d", t);
+          //RCLCPP_INFO(this->get_logger(), "t= %d", t);
           if(start_frame){
             recv_data[recv_count++]=t;
           }
@@ -93,23 +94,23 @@ class BaseNode : public rclcpp::Node
           if(recv_count==RECEIVE_DATA_SIZE){
             recv_count = 0;
             start_frame = false;
-            RCLCPP_INFO(this->get_logger(), "end frame");
+            //RCLCPP_INFO(this->get_logger(), "end frame");
             if(t==FRAME_TAIL){
               // finish receiving a frame
               if(recv_data[9]==(recv_data[0]^recv_data[1]^recv_data[2]^recv_data[3]^recv_data[4]^recv_data[5]^recv_data[6]^recv_data[7]^recv_data[8])){
                 // received frame data correct
-                RCLCPP_INFO(this->get_logger(), "data correct");
+                //RCLCPP_INFO(this->get_logger(), "data correct");
                 float _1 = (int16_t)((recv_data[1]<<8)|recv_data[2])/1000.0;
                 float _2 = (int16_t)((recv_data[3]<<8)|recv_data[4])/1000.0;
                 float _3 = (int16_t)((recv_data[5]<<8)|recv_data[6])/1000.0;
                 float _4 = (int16_t)((recv_data[7]<<8)|recv_data[8])/1000.0;
-                RCLCPP_INFO(this->get_logger(), "%f < %f < %f < %f",_1,_2,_3,_4);
+                //RCLCPP_INFO(this->get_logger(), "%f < %f < %f < %f",_1,_2,_3,_4);
                 float sampling_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-last_time).count()/1000000.0;
                 last_time = std::chrono::steady_clock::now();
                 float x = wheel_radius*((_2+_1+_4+_3)/4.0);
                 float y = wheel_radius*((_2-_1+_4-_3)/4.0);
                 float z = wheel_radius*((-_2-_1+_4+_3)/4.0/(axle_spacing+wheel_spacing));
-                RCLCPP_INFO(this->get_logger(),"%f %f %f",x,y,z);
+                //RCLCPP_INFO(this->get_logger(),"%f %f %f",x,y,z);
                 
                 //RCLCPP_INFO(this->get_logger(),"%f",sampling_time);
                 px+=((x * cos(pz) - y * sin(pz)) * sampling_time); //Calculate the displacement in the X direction, unit: m 
@@ -156,7 +157,7 @@ class BaseNode : public rclcpp::Node
                   memcpy(&odom.twist.covariance, odom_twist_covariance, sizeof(odom_twist_covariance));       
                 }
                 odom_publisher->publish(odom);
-                RCLCPP_INFO(this->get_logger(), "odom publised");
+                //RCLCPP_INFO(this->get_logger(), "odom publised");
                 if(imu_enabled){
                   // publish imu data
                   
@@ -167,7 +168,7 @@ class BaseNode : public rclcpp::Node
               }
             }
           }
-        //}
+        }
         status = future_.wait_for(std::chrono::seconds(0));
       } while (status == std::future_status::timeout);
     }
