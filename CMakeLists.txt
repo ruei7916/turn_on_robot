@@ -15,6 +15,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 include_directories(include)
 
@@ -30,8 +32,8 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(base_node src/base_node.cpp src/serial.cc src/impl/unix.cc)
-ament_target_dependencies(base_node rclcpp geometry_msgs nav_msgs tf2_geometry_msgs tf2)
+add_executable(base_node src/base_node.cpp src/serial/serial.cc src/serial/impl/unix.cc src/ICM20948.c)
+ament_target_dependencies(base_node rclcpp geometry_msgs nav_msgs tf2_geometry_msgs tf2 tf2_ros sensor_msgs)
 
 
 install(
