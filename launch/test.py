@@ -1,9 +1,15 @@
-from launch import LaunchDescription
+import launch
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+import launch_ros
+import os
 
 def generate_launch_description():
-    ld = LaunchDescription()
+    pkg_share = launch_ros.substitutions.FindPackageShare(package='turn_on_robot').find('turn_on_robot')
+    ld = launch.LaunchDescription()
 
+    ld.add_action(launch.actions.DeclareLaunchArgument(name='use_sim_time', default_value='True',
+                                            description='Flag to enable use_sim_time'))
     ld.add_action( 
         Node(
             package='turn_on_robot',
@@ -17,8 +23,17 @@ def generate_launch_description():
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
-            name='map2odomTF',
-            arguments=["0", "0", "0", "0", "0", "0", "map", "odom"]
+            name='imu_tf',
+            arguments=["0", "0", "0", "0", "0", "0", "base_link", "imu"]
+        )
+    )
+    ld.add_action(
+        Node(
+            package='robot_localization',
+            executable='ekf_node',
+            name='ekf_filter_node',
+            output='screen',
+            parameters=[os.path.join(pkg_share, 'config/ekf.yaml'), {'use_sim_time': LaunchConfiguration('use_sim_time')}]
         )
     )
     return ld
