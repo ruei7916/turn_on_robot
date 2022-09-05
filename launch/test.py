@@ -8,8 +8,6 @@ def generate_launch_description():
     pkg_share = launch_ros.substitutions.FindPackageShare(package='turn_on_robot').find('turn_on_robot')
     ld = launch.LaunchDescription()
 
-    ld.add_action(launch.actions.DeclareLaunchArgument(name='use_sim_time', default_value='True',
-                                            description='Flag to enable use_sim_time'))
     ld.add_action( 
         Node(
             package='turn_on_robot',
@@ -33,7 +31,7 @@ def generate_launch_description():
             executable='ekf_node',
             name='ekf_filter_node',
             output='screen',
-            parameters=[os.path.join(pkg_share, 'config/ekf.yaml'), {'use_sim_time': LaunchConfiguration('use_sim_time')}]
+            parameters=[os.path.join(pkg_share, 'config/ekf.yaml')]
         )
     )
     return ld
