@@ -1,6 +1,7 @@
 #include "turn_on_robot/base_node.h"
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/transform_stamped.hpp"
 #include "serial/serial.h"
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2/LinearMath/Quaternion.h"
@@ -69,7 +70,7 @@ class BaseNode : public rclcpp::Node
       sleep(3);
       imuDataGet( &stAngles, &stGyroRawData, &stAccelRawData, &stMagnRawData);
       if(fabs(stAccelRawData.fY-(-1))>0.2){
-        RCLCPP_WARN(this->get_logger(), "imu data error");
+        RCLCPP_WARN(this->get_logger(), "imu data error %f",fabs(stAccelRawData.fY-(-1)));
       }
       arduino_serial.flushInput();
     }
