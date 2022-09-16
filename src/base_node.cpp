@@ -1,12 +1,10 @@
 #include "turn_on_robot/base_node.h"
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "geometry_msgs/msg/transform_stamped.hpp"
 #include "serial/serial.h"
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
-#include "tf2_ros/transform_broadcaster.h"
 #include "sensor_msgs/msg/imu.hpp"
 #include "ICM20948.h"
 
@@ -37,7 +35,6 @@ class BaseNode : public rclcpp::Node
       rclcpp::QoS qos(rclcpp::KeepLast(1));
       cmd_vel_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", qos, std::bind(&BaseNode::cmd_vel_callback, this, std::placeholders::_1));
       odom_publisher = this->create_publisher<nav_msgs::msg::Odometry>("odom", rclcpp::SensorDataQoS());
-      tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
       imu_publisher = this->create_publisher<sensor_msgs::msg::Imu>("imu", rclcpp::SensorDataQoS());
       // set up serial connection with arduino uno
       try{
@@ -70,6 +67,10 @@ class BaseNode : public rclcpp::Node
         RCLCPP_INFO(this->get_logger(), "Motion sersor NULL");
       }
       sleep(3);
+      imuDataGet( &stAngles, &stGyroRawData, &stAccelRawData, &stMagnRawData);
+      if(fabs(stAccelRawData.fY-(-1))>0.2){
+        RCLCPP_WARN(this->get_logger(), "imu data error");
+      }
       arduino_serial.flushInput();
     }
     ~BaseNode()
@@ -219,7 +220,6 @@ class BaseNode : public rclcpp::Node
     }
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher;
-    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub;
     rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_publisher;
     serial::Serial arduino_serial;
