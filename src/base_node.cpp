@@ -69,6 +69,8 @@ class BaseNode : public rclcpp::Node
       else{
         RCLCPP_INFO(this->get_logger(), "Motion sersor NULL");
       }
+      sleep(3);
+      arduino_serial.flushInput();
     }
     ~BaseNode()
     {
@@ -173,15 +175,15 @@ class BaseNode : public rclcpp::Node
                 tf2::Quaternion imu_quat;
                 imu_data.orientation = tf2::toMsg(imu_quat);
                 imu_data.orientation_covariance[0] = -1;
-                imu_data.angular_velocity.x = stGyroRawData.fZ/57.3;
-                imu_data.angular_velocity.y = -stGyroRawData.fX/57.3;
-                imu_data.angular_velocity.z = -stGyroRawData.fY/57.3;
+                imu_data.angular_velocity.x = (stGyroRawData.fZ)/57.3;
+                imu_data.angular_velocity.y = -(stGyroRawData.fX)/57.3;
+                imu_data.angular_velocity.z = -(stGyroRawData.fY-(-0.061))/57.3;
                 imu_data.angular_velocity_covariance[0] = 1e-6;
                 imu_data.angular_velocity_covariance[4] = 1e-6;
                 imu_data.angular_velocity_covariance[8] = 1e-6;
-                imu_data.linear_acceleration.x = stAccelRawData.fZ*9.81;
-                imu_data.linear_acceleration.y = -stAccelRawData.fX*9.81;
-                imu_data.linear_acceleration.z = -stAccelRawData.fY*9.81;
+                imu_data.linear_acceleration.x = (stAccelRawData.fZ-(-0.033))*9.81;
+                imu_data.linear_acceleration.y = -(stAccelRawData.fX-(0.039))*9.81;
+                imu_data.linear_acceleration.z = -(stAccelRawData.fY)*9.81;
                 imu_data.linear_acceleration_covariance[0] = 1e-6;
                 imu_data.linear_acceleration_covariance[4] = 1e-6;
                 imu_data.linear_acceleration_covariance[8] = 1e-6;
