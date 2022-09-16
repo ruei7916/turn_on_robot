@@ -131,17 +131,6 @@ class BaseNode : public rclcpp::Node
 
                 tf2::Quaternion odom_quat;
                 odom_quat.setRPY(0,0,pz);
-                /*
-                geometry_msgs::msg::TransformStamped tfStamped;
-                tfStamped.header.stamp = this->now();
-                tfStamped.header.frame_id = "odom";
-                tfStamped.child_frame_id = "base_link";
-                tfStamped.transform.translation.x = px;
-                tfStamped.transform.translation.y = py;
-                tfStamped.transform.translation.z = 0.0;
-                tfStamped.transform.rotation = tf2::toMsg(odom_quat);
-                tf_broadcaster_->sendTransform(tfStamped);
-                */
                 nav_msgs::msg::Odometry odom;
                 odom.header.stamp = this->now();
                 odom.header.frame_id = "odom";
