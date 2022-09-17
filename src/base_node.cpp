@@ -129,7 +129,7 @@ class BaseNode : public rclcpp::Node
                 px+=((x * cos(pz) - y * sin(pz)) * sampling_time); //Calculate the displacement in the X direction, unit: m 
                 py+=((x * sin(pz) + y * cos(pz)) * sampling_time); //Calculate the displacement in the Y direction, unit: m 
                 pz+=(z * sampling_time); //The angular displacement about the Z axis, in rad 
-                shRCLCPP_INFO(this->get_logger(),"p %f %f %f",px,py,pz);
+                RCLCPP_INFO(this->get_logger(),"p %f %f %f",px,py,pz);
 
                 tf2::Quaternion odom_quat;
                 odom_quat.setRPY(0,0,pz);
