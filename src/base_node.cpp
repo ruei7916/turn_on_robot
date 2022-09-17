@@ -67,10 +67,15 @@ class BaseNode : public rclcpp::Node
       else{
         RCLCPP_INFO(this->get_logger(), "Motion sersor NULL");
       }
-      sleep(3);
-      imuDataGet( &stAngles, &stGyroRawData, &stAccelRawData, &stMagnRawData);
+      for(int i=0;i<30;i++){
+        imuDataGet( &stAngles, &stGyroRawData, &stAccelRawData, &stMagnRawData);
+        usleep(100000);
+      }      
       if(fabs(stAccelRawData.fY-(-1))>0.2){
-        RCLCPP_WARN(this->get_logger(), "imu data error %f",fabs(stAccelRawData.fY-(-1)));
+        RCLCPP_WARN(this->get_logger(), "imu data error: accel.z is %f", stAccelRawData.fY);
+      }
+      else{
+        RCLCPP_INFO(this->get_logger(), "imu accel.z is %f", stAccelRawData.fY);
       }
       arduino_serial.flushInput();
     }
