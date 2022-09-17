@@ -117,7 +117,7 @@ class BaseNode : public rclcpp::Node
                 float _2 = (int16_t)((recv_data[3]<<8)|recv_data[4])/1000.0;
                 float _3 = (int16_t)((recv_data[5]<<8)|recv_data[6])/1000.0;
                 float _4 = (int16_t)((recv_data[7]<<8)|recv_data[8])/1000.0;
-                //RCLCPP_INFO(this->get_logger(), "%f < %f < %f < %f",_1,_2,_3,_4);
+                RCLCPP_INFO(this->get_logger(), "%f < %f < %f < %f",_1,_2,_3,_4);
                 float sampling_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-last_time).count()/1000000.0;
                 last_time = std::chrono::steady_clock::now();
                 float x = wheel_radius*((_2+_1+_4+_3)/4.0);
@@ -129,7 +129,7 @@ class BaseNode : public rclcpp::Node
                 px+=((x * cos(pz) - y * sin(pz)) * sampling_time); //Calculate the displacement in the X direction, unit: m 
                 py+=((x * sin(pz) + y * cos(pz)) * sampling_time); //Calculate the displacement in the Y direction, unit: m 
                 pz+=(z * sampling_time); //The angular displacement about the Z axis, in rad 
-                //RCLCPP_INFO(this->get_logger(),"p %f %f %f",px,py,pz);
+                shRCLCPP_INFO(this->get_logger(),"p %f %f %f",px,py,pz);
 
                 tf2::Quaternion odom_quat;
                 odom_quat.setRPY(0,0,pz);
