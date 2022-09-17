@@ -165,7 +165,9 @@ class BaseNode : public rclcpp::Node
                 imu_data.header.frame_id = "imu_link";
                 tf2::Quaternion imu_quat;
                 imu_data.orientation = tf2::toMsg(imu_quat);
-                imu_data.orientation_covariance[0] = -1;
+                imu_data.orientation_covariance[0] = 1e6;
+                imu_data.orientation_covariance[4] = 1e6;
+                imu_data.orientation_covariance[8] = 1e-6;
                 imu_data.angular_velocity.x = (stGyroRawData.fZ)/57.3;
                 imu_data.angular_velocity.y = -(stGyroRawData.fX)/57.3;
                 imu_data.angular_velocity.z = -(stGyroRawData.fY-(-0.061))/57.3;
