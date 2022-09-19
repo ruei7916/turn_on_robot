@@ -38,6 +38,25 @@ class BaseNode : public rclcpp::Node
       cmd_vel_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", qos, std::bind(&BaseNode::cmd_vel_callback, this, std::placeholders::_1));
       odom_publisher = this->create_publisher<nav_msgs::msg::Odometry>("odom", rclcpp::SensorDataQoS());
       imu_publisher = this->create_publisher<sensor_msgs::msg::Imu>("imu", rclcpp::SensorDataQoS());
+      // initialize IMU
+      imuInit(&enMotionSensorType);
+      if(IMU_EN_SENSOR_TYPE_ICM20948 == enMotionSensorType){
+        RCLCPP_INFO(this->get_logger(), "Motion sersor is ICM-20948");
+      }
+      else{
+        RCLCPP_INFO(this->get_logger(), "Motion sersor NULL");
+      }
+      for(int i=0;i<30;i++){
+        imuDataGet( &stAngles, &stGyroRawData, &stAccelRawData, &stMagnRawData);
+        usleep(100000);
+      }      
+      if(fabs(stAccelRawData.fY-(-1))>0.2){
+        RCLCPP_WARN(this->get_logger(), "imu data error: accel.z is %f", stAccelRawData.fY);
+      }
+      else{
+        RCLCPP_INFO(this->get_logger(), "imu accel.z is %f", stAccelRawData.fY);
+      }
+      
       // set up serial connection with arduino uno
       try{
         arduino_serial.setPort("/dev/ttyACM0");
