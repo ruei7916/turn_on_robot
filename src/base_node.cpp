@@ -46,47 +46,6 @@ class BaseNode : public rclcpp::Node
       else{
         RCLCPP_INFO(this->get_logger(), "Motion sersor NULL");
       }
-      for(int i=0;i<30;i++){
-        imuDataGet( &stAngles, &stGyroRawData, &stAccelRawData, &stMagnRawData);
-        usleep(100000);
-      }      
-      if(fabs(stAccelRawData.fY-(-1))>0.2){
-        RCLCPP_WARN(this->get_logger(), "imu data error: accel.z is %f", stAccelRawData.fY);
-      }
-      else{
-        RCLCPP_INFO(this->get_logger(), "imu accel.z is %f", stAccelRawData.fY);
-      }
-      
-      // set up serial connection with arduino uno
-      try{
-        arduino_serial.setPort("/dev/ttyACM0");
-        arduino_serial.setBaudrate(38400);
-        serial::Timeout _time = serial::Timeout::simpleTimeout(2000);
-        arduino_serial.setTimeout(_time);
-        arduino_serial.open();
-        //arduino_serial.setDTR();
-        //arduino_serial.setRTS();
-      }
-      catch(serial::IOException& e){
-        RCLCPP_ERROR(this->get_logger(), e.what());
-        RCLCPP_ERROR(this->get_logger(), "An error occurred while establishing serial connection with Arduino uno.");
-      }
-
-      // create a polling thread for receiving data from arduino uno and publishing topics 
-      if(arduino_serial.isOpen()){
-        RCLCPP_INFO(this->get_logger(), "arduino serial port opened");
-        future_ = exit_signal_.get_future();
-        poll_thread_ = std::thread(&BaseNode::pollThread, this);
-      }
-
-      // initialize IMU
-      imuInit(&enMotionSensorType);
-      if(IMU_EN_SENSOR_TYPE_ICM20948 == enMotionSensorType){
-        RCLCPP_INFO(this->get_logger(), "Motion sersor is ICM-20948");
-      }
-      else{
-        RCLCPP_INFO(this->get_logger(), "Motion sersor NULL");
-      }
       RCLCPP_INFO(this->get_logger(), "checking imu data...");
       for(int i=0;i<20;i++){
         imuDataGet( &stAngles, &stGyroRawData, &stAccelRawData, &stMagnRawData);
@@ -121,7 +80,28 @@ class BaseNode : public rclcpp::Node
       gyro_bias.fX=gryo_x_sum/50;
       gyro_bias.fY=gryo_y_sum/50;
       gyro_bias.fZ=gyro_z_sum/50;
+      
+      // set up serial connection with arduino uno
+      try{
+        arduino_serial.setPort("/dev/ttyACM0");
+        arduino_serial.setBaudrate(38400);
+        serial::Timeout _time = serial::Timeout::simpleTimeout(2000);
+        arduino_serial.setTimeout(_time);
+        arduino_serial.open();
+        //arduino_serial.setDTR();
+        //arduino_serial.setRTS();
+      }
+      catch(serial::IOException& e){
+        RCLCPP_ERROR(this->get_logger(), e.what());
+        RCLCPP_ERROR(this->get_logger(), "An error occurred while establishing serial connection with Arduino uno.");
+      }
       arduino_serial.flushInput();
+      // create a polling thread for receiving data from arduino uno and publishing topics 
+      if(arduino_serial.isOpen()){
+        RCLCPP_INFO(this->get_logger(), "arduino serial port opened");
+        future_ = exit_signal_.get_future();
+        poll_thread_ = std::thread(&BaseNode::pollThread, this);
+      }
     }
     ~BaseNode()
     {
