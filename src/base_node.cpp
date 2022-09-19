@@ -13,6 +13,7 @@
 #include <chrono>
 #include <thread>
 #include <future>
+#include <memory>
 
 #define FRAME_HEADER      0X7B       // Frame header
 #define FRAME_TAIL        0X7D       // Frame tail
@@ -67,7 +68,8 @@ class BaseNode : public rclcpp::Node
       else{
         RCLCPP_INFO(this->get_logger(), "Motion sersor NULL");
       }
-      for(int i=0;i<30;i++){
+      RCLCPP_INFO(this->get_logger(), "checking imu data...");
+      for(int i=0;i<20;i++){
         imuDataGet( &stAngles, &stGyroRawData, &stAccelRawData, &stMagnRawData);
         usleep(100000);
       }      
@@ -75,8 +77,31 @@ class BaseNode : public rclcpp::Node
         RCLCPP_WARN(this->get_logger(), "imu data error: accel.z is %f", stAccelRawData.fY);
       }
       else{
-        RCLCPP_INFO(this->get_logger(), "imu accel.z is %f", stAccelRawData.fY);
+        RCLCPP_INFO(this->get_logger(), "accel.z is %f", stAccelRawData.fY);
       }
+      RCLCPP_INFO(this->get_logger(), "calculating imu bias");
+      float accel_x_sum = 0;
+      float accel_y_sum = 0;
+      float accel_z_sum = 0;
+      float gryo_x_sum = 0;
+      float gryo_y_sum = 0;
+      float gyro_z_sum = 0;
+      for(int i=0;i<50;i++){
+        imuDataGet(&stAngles, &stGyroRawData, &stAccelRawData, &stMagnRawData);
+        accel_x_sum+=stAccelRawData.fX;
+        accel_y_sum+=stAccelRawData.fY;
+        accel_z_sum+=stAccelRawData.fZ;
+        gryo_x_sum+=stGyroRawData.fX;
+        gryo_y_sum+=stGyroRawData.fY;
+        gyro_z_sum+=stGyroRawData.fZ;
+        usleep(10000);
+      }
+      accel_bias.fX=accel_x_sum/50;
+      accel_bias.fY=accel_y_sum/50;
+      accel_bias.fZ=accel_z_sum/50;
+      gyro_bias.fX=gryo_x_sum/50;
+      gyro_bias.fY=gryo_y_sum/50;
+      gyro_bias.fZ=gyro_z_sum/50;
       arduino_serial.flushInput();
     }
     ~BaseNode()
@@ -173,15 +198,15 @@ class BaseNode : public rclcpp::Node
                 imu_data.orientation_covariance[0] = 1e6;
                 imu_data.orientation_covariance[4] = 1e6;
                 imu_data.orientation_covariance[8] = 1e-6;
-                imu_data.angular_velocity.x = (stGyroRawData.fZ)/57.3;
-                imu_data.angular_velocity.y = -(stGyroRawData.fX)/57.3;
-                imu_data.angular_velocity.z = -(stGyroRawData.fY-(-0.061))/57.3;
+                imu_data.angular_velocity.x = (stGyroRawData.fZ-(gyro_bias.fZ))/57.3;
+                imu_data.angular_velocity.y = -(stGyroRawData.fX-(gyro_bias.fX))/57.3;
+                imu_data.angular_velocity.z = -(stGyroRawData.fY-(gyro_bias.fY))/57.3;
                 imu_data.angular_velocity_covariance[0] = 1e-6;
                 imu_data.angular_velocity_covariance[4] = 1e-6;
                 imu_data.angular_velocity_covariance[8] = 1e-6;
-                imu_data.linear_acceleration.x = (stAccelRawData.fZ-(-0.033))*9.81;
-                imu_data.linear_acceleration.y = -(stAccelRawData.fX-(0.039))*9.81;
-                imu_data.linear_acceleration.z = -(stAccelRawData.fY)*9.81;
+                imu_data.linear_acceleration.x = (stAccelRawData.fZ-(accel_bias.fZ))*9.81;
+                imu_data.linear_acceleration.y = -(stAccelRawData.fX-(accel_bias.fX))*9.81;
+                imu_data.linear_acceleration.z = -(stAccelRawData.fY-(accel_bias.fY))*9.81;
                 imu_data.linear_acceleration_covariance[0] = 1e-6;
                 imu_data.linear_acceleration_covariance[4] = 1e-6;
                 imu_data.linear_acceleration_covariance[8] = 1e-6;
@@ -239,6 +264,8 @@ class BaseNode : public rclcpp::Node
     IMU_ST_SENSOR_DATA stGyroRawData;
     IMU_ST_SENSOR_DATA stAccelRawData;
     IMU_ST_SENSOR_DATA stMagnRawData;
+    IMU_ST_SENSOR_DATA accel_bias;
+    IMU_ST_SENSOR_DATA gyro_bias;
 };
 
 int main(int argc, char * argv[])
