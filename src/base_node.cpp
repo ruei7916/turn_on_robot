@@ -52,10 +52,10 @@ class BaseNode : public rclcpp::Node
         usleep(100000);
       }      
       if(fabs(stAccelRawData.fY-(-1))>0.2){
-        RCLCPP_WARN(this->get_logger(), "imu data error: accel.z is %f", stAccelRawData.fY);
+        RCLCPP_WARN(this->get_logger(), "imu data error: horizontal acceleration is %f", stAccelRawData.fY);
       }
       else{
-        RCLCPP_INFO(this->get_logger(), "accel.z is %f", stAccelRawData.fY);
+        RCLCPP_INFO(this->get_logger(), "horizontal acceleration is %f", stAccelRawData.fY);
       }
       RCLCPP_INFO(this->get_logger(), "calculating imu bias");
       float accel_x_sum = 0;
@@ -80,7 +80,8 @@ class BaseNode : public rclcpp::Node
       gyro_bias.fX=gryo_x_sum/50;
       gyro_bias.fY=gryo_y_sum/50;
       gyro_bias.fZ=gyro_z_sum/50;
-      
+      RCLCPP_INFO(this->get_logger(), "accel bias:   x:%.3f  y:%.3f  z:%.3f", accel_bias.fX, accel_bias.fY, accel_bias.fZ);
+      RCLCPP_INFO(this->get_logger(), "gyro bias:   x:%.3f  y:%.3f  z:%.3f", gyro_bias.fX, gyro_bias.fY, gyro_bias.fZ);
       // set up serial connection with arduino uno
       try{
         arduino_serial.setPort("/dev/ttyACM0");
