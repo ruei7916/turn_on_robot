@@ -89,8 +89,8 @@ class BaseNode : public rclcpp::Node
         serial::Timeout _time = serial::Timeout::simpleTimeout(2000);
         arduino_serial.setTimeout(_time);
         arduino_serial.open();
-        arduino_serial.setDTR();
-        arduino_serial.setRTS();
+        //arduino_serial.setDTR();
+        //arduino_serial.setRTS();
       }
       catch(serial::IOException& e){
         RCLCPP_ERROR(this->get_logger(), e.what());

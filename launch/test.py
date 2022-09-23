@@ -8,6 +8,12 @@ def generate_launch_description():
     pkg_share = launch_ros.substitutions.FindPackageShare(package='turn_on_robot').find('turn_on_robot')
     ld = launch.LaunchDescription()
 
+    ld.add_action( 
+        Node(
+            package='turn_on_robot',
+            executable='base_node'
+        )
+    )
     ld.add_action(
         Node(
             package='robot_localization',
