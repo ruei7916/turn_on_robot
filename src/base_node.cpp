@@ -168,7 +168,7 @@ class BaseNode : public rclcpp::Node
                 odom.header.frame_id = "odom";
                 odom.pose.pose.position.x = px;
                 odom.pose.pose.position.y = py;
-                odom.pose.pose.position.z = 0.0;
+                odom.pose.pose.position.z = 0.0795;
                 odom.pose.pose.orientation = tf2::toMsg(odom_quat);
                 odom.child_frame_id = "base_link";
                 odom.twist.twist.linear.x = x;
