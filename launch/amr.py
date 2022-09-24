@@ -61,12 +61,6 @@ def generate_launch_description():
         Node(package='robot_state_publisher',
             executable='robot_state_publisher',
             parameters=[{'robot_description': Command(['xacro ', LaunchConfiguration('model')])}]))
-    ld.add_action(
-        Node(package='rviz2',
-            executable='rviz2',
-            name='rviz2',
-            output='screen',
-            arguments=['-d', LaunchConfiguration('rvizconfig')]))
     # nodes for turn_on_robot
     ld.add_action( 
         Node(package='turn_on_robot',
