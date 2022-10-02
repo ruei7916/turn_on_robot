@@ -90,8 +90,8 @@ class BaseNode : public rclcpp::Node
         serial::Timeout _time = serial::Timeout::simpleTimeout(2000);
         arduino_serial.setTimeout(_time);
         arduino_serial.open();
-        //arduino_serial.setDTR();
-        //arduino_serial.setRTS();
+        arduino_serial.setDTR();
+        arduino_serial.setRTS();
       }
       catch(serial::IOException& e){
         RCLCPP_ERROR(this->get_logger(), e.what());
@@ -104,7 +104,8 @@ class BaseNode : public rclcpp::Node
         future_ = exit_signal_.get_future();
         poll_thread_ = std::thread(&BaseNode::pollThread, this);
       }
-      imu_timer_ = this->create_wall_timer(10ms, std::bind(&BaseNode::imu_timer_callback, this));
+      imu_timer_ = this->create_wall_timer(5ms, std::bind(&BaseNode::imu_timer_callback, this));
+      RCLCPP_INFO(this->get_logger(),"200hz");
     }
     ~BaseNode()
     {
