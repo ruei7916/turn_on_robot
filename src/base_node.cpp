@@ -27,6 +27,7 @@
 // half of the distance between front wheel and rear wheel
 #define axle_spacing (15.1/2.0/100) // unit: m
 
+using namespace std::chrono_literals;
 
 class BaseNode : public rclcpp::Node
 {
@@ -89,8 +90,8 @@ class BaseNode : public rclcpp::Node
         serial::Timeout _time = serial::Timeout::simpleTimeout(2000);
         arduino_serial.setTimeout(_time);
         arduino_serial.open();
-        //arduino_serial.setDTR();
-        //arduino_serial.setRTS();
+        arduino_serial.setDTR();
+        arduino_serial.setRTS();
       }
       catch(serial::IOException& e){
         RCLCPP_ERROR(this->get_logger(), e.what());
@@ -103,6 +104,8 @@ class BaseNode : public rclcpp::Node
         future_ = exit_signal_.get_future();
         poll_thread_ = std::thread(&BaseNode::pollThread, this);
       }
+      imu_timer_ = this->create_wall_timer(5ms, std::bind(&BaseNode::imu_timer_callback, this));
+      RCLCPP_INFO(this->get_logger(),"200hz");
     }
     ~BaseNode()
     {
@@ -111,6 +114,32 @@ class BaseNode : public rclcpp::Node
       arduino_serial.close();
     }
   private:
+    void imu_timer_callback()
+    {
+      // publish imu data
+      imuDataGet( &stAngles, &stGyroRawData, &stAccelRawData, &stMagnRawData);
+      sensor_msgs::msg::Imu imu_data;
+      imu_data.header.stamp = this->now();
+      imu_data.header.frame_id = "imu_link";
+      tf2::Quaternion imu_quat;
+      imu_data.orientation = tf2::toMsg(imu_quat);
+      imu_data.orientation_covariance[0] = 1e6;
+      imu_data.orientation_covariance[4] = 1e6;
+      imu_data.orientation_covariance[8] = 1e-6;
+      imu_data.angular_velocity.x = (stGyroRawData.fZ-(gyro_bias.fZ))/57.3;
+      imu_data.angular_velocity.y = -(stGyroRawData.fX-(gyro_bias.fX))/57.3;
+      imu_data.angular_velocity.z = -(stGyroRawData.fY-(gyro_bias.fY))/57.3;
+      imu_data.angular_velocity_covariance[0] = 1e-6;
+      imu_data.angular_velocity_covariance[4] = 1e-6;
+      imu_data.angular_velocity_covariance[8] = 1e-6;
+      imu_data.linear_acceleration.x = (stAccelRawData.fZ-(accel_bias.fZ))*9.81;
+      imu_data.linear_acceleration.y = -(stAccelRawData.fX-(accel_bias.fX))*9.81;
+      imu_data.linear_acceleration.z = -(stAccelRawData.fY-(accel_bias.fY))*9.81;
+      imu_data.linear_acceleration_covariance[0] = 1e-6;
+      imu_data.linear_acceleration_covariance[4] = 1e-6;
+      imu_data.linear_acceleration_covariance[8] = 1e-6;
+      imu_publisher->publish(imu_data);
+    }
     void pollThread()
     {
       std::future_status status;
@@ -188,29 +217,7 @@ class BaseNode : public rclcpp::Node
                 odom_publisher->publish(odom);
                 //RCLCPP_INFO(this->get_logger(), "odom publised");
 
-                // publish imu data
-                imuDataGet( &stAngles, &stGyroRawData, &stAccelRawData, &stMagnRawData);
-                sensor_msgs::msg::Imu imu_data;
-                imu_data.header.stamp = this->now();
-                imu_data.header.frame_id = "imu_link";
-                tf2::Quaternion imu_quat;
-                imu_data.orientation = tf2::toMsg(imu_quat);
-                imu_data.orientation_covariance[0] = 1e6;
-                imu_data.orientation_covariance[4] = 1e6;
-                imu_data.orientation_covariance[8] = 1e-6;
-                imu_data.angular_velocity.x = (stGyroRawData.fZ-(gyro_bias.fZ))/57.3;
-                imu_data.angular_velocity.y = -(stGyroRawData.fX-(gyro_bias.fX))/57.3;
-                imu_data.angular_velocity.z = -(stGyroRawData.fY-(gyro_bias.fY))/57.3;
-                imu_data.angular_velocity_covariance[0] = 1e-6;
-                imu_data.angular_velocity_covariance[4] = 1e-6;
-                imu_data.angular_velocity_covariance[8] = 1e-6;
-                imu_data.linear_acceleration.x = (stAccelRawData.fZ-(accel_bias.fZ))*9.81;
-                imu_data.linear_acceleration.y = -(stAccelRawData.fX-(accel_bias.fX))*9.81;
-                imu_data.linear_acceleration.z = -(stAccelRawData.fY-(accel_bias.fY))*9.81;
-                imu_data.linear_acceleration_covariance[0] = 1e-6;
-                imu_data.linear_acceleration_covariance[4] = 1e-6;
-                imu_data.linear_acceleration_covariance[8] = 1e-6;
-                imu_publisher->publish(imu_data);
+                
               }else{
                 RCLCPP_INFO(this->get_logger(), "data error");
               }
@@ -254,6 +261,7 @@ class BaseNode : public rclcpp::Node
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub;
+    rclcpp::TimerBase::SharedPtr imu_timer_;
     rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_publisher;
     serial::Serial arduino_serial;
     std::thread poll_thread_;
