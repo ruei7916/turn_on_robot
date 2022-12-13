@@ -2,6 +2,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
+#include "std_srvs/srv/empty.hpp"
 #include "serial/serial.h"
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2/LinearMath/Quaternion.h"
@@ -17,8 +18,8 @@
 
 #define FRAME_HEADER      0X7B       // Frame header
 #define FRAME_TAIL        0X7D       // Frame tail
-#define SEND_DATA_SIZE    9          // The length of data sent by ROS to the lower machine 
-#define RECEIVE_DATA_SIZE    11          // The length of data sent by the lower machine to ROS
+#define SEND_DATA_SIZE    10          // The length of data sent by ROS to the lower machine 
+#define RECEIVE_DATA_SIZE    12          // The length of data sent by the lower machine to ROS
 
 // wheel radius
 #define wheel_radius (3.0/100) // unit: m
@@ -37,8 +38,10 @@ class BaseNode : public rclcpp::Node
     {
       rclcpp::QoS qos(rclcpp::KeepLast(1));
       cmd_vel_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", qos, std::bind(&BaseNode::cmd_vel_callback, this, std::placeholders::_1));
+      pick_service = this->create_service<std_srvs::srv::Empty>("pick_ball", std::bind(&BaseNode::pick_ball_srv_callback,this,std::placeholders::_1,std::placeholders::_2));
       odom_publisher = this->create_publisher<nav_msgs::msg::Odometry>("odom", rclcpp::SensorDataQoS());
       imu_publisher = this->create_publisher<sensor_msgs::msg::Imu>("imu", rclcpp::SensorDataQoS());
+
       // initialize IMU
       imuInit(&enMotionSensorType);
       if(IMU_EN_SENSOR_TYPE_ICM20948 == enMotionSensorType){
@@ -65,6 +68,8 @@ class BaseNode : public rclcpp::Node
       float gryo_x_sum = 0;
       float gryo_y_sum = 0;
       float gyro_z_sum = 0;
+      command_pick_cnt=0;
+      recv_pick_cnt=0;
       for(int i=0;i<50;i++){
         imuDataGet(&stAngles, &stGyroRawData, &stAccelRawData, &stMagnRawData);
         accel_x_sum+=stAccelRawData.fX;
@@ -87,11 +92,12 @@ class BaseNode : public rclcpp::Node
       try{
         arduino_serial.setPort("/dev/ttyACM0");
         arduino_serial.setBaudrate(38400);
-        serial::Timeout _time = serial::Timeout::simpleTimeout(2000);
+        serial::Timeout _time = serial::Timeout::simpleTimeout(1000);
         arduino_serial.setTimeout(_time);
         arduino_serial.open();
-        arduino_serial.setDTR();
-        arduino_serial.setRTS();
+        //arduino_serial.setDTR();
+        //arduino_serial.setRTS();
+        //arduino_serial.flushInput();
       }
       catch(serial::IOException& e){
         RCLCPP_ERROR(this->get_logger(), e.what());
@@ -104,14 +110,40 @@ class BaseNode : public rclcpp::Node
         future_ = exit_signal_.get_future();
         poll_thread_ = std::thread(&BaseNode::pollThread, this);
       }
-      imu_timer_ = this->create_wall_timer(5ms, std::bind(&BaseNode::imu_timer_callback, this));
-      RCLCPP_INFO(this->get_logger(),"200hz");
+      imu_timer_ = this->create_wall_timer(10ms, std::bind(&BaseNode::imu_timer_callback, this));
+      //RCLCPP_INFO(this->get_logger(),"200hz");
     }
     ~BaseNode()
     {
       exit_signal_.set_value();
       poll_thread_.join();
       arduino_serial.close();
+    }
+    void pick_ball_srv_callback(
+                                const std::shared_ptr<std_srvs::srv::Empty::Request>request,
+                                const std::shared_ptr<std_srvs::srv::Empty::Response>response)
+    {
+      if(command_pick_cnt==recv_pick_cnt){
+        command_pick_cnt+=1;
+      }
+      RCLCPP_WARN(this->get_logger(),"pick service triggered");
+      while (recv_pick_cnt!=command_pick_cnt){
+        //rclcpp::Node::SharedPtr b(this);
+        //rclcpp::spin_some(b);
+        uint8_t send_data[SEND_DATA_SIZE]={0};
+        send_data[0] = FRAME_HEADER;
+      
+        send_data[7] = command_pick_cnt;
+        send_data[8] = send_data[0]^send_data[1]^send_data[2]^send_data[3]^send_data[4]^send_data[5]^send_data[6]^send_data[7];
+        send_data[9] = FRAME_TAIL;
+
+        try{
+          arduino_serial.write(send_data, SEND_DATA_SIZE); // Send data to arduino uno via serial port 
+        }catch (serial::IOException& e){
+          RCLCPP_ERROR(this->get_logger(), e.what());
+          RCLCPP_ERROR(this->get_logger(),"Unable to send data through serial port"); // If sending data fails, an error message is printed
+        }
+      }
     }
   private:
     void imu_timer_callback()
@@ -154,7 +186,8 @@ class BaseNode : public rclcpp::Node
       do {
         if(arduino_serial.available()){//RCLCPP_INFO(this->get_logger(), "a");}
           arduino_serial.read(&t, 1);
-          //RCLCPP_INFO(this->get_logger(), "t= %d", t);
+          RCLCPP_INFO(this->get_logger(), "t= %d", t);
+          //RCLCPP_INFO(this->get_logger(), "%d", recv_count);
           if(start_frame){
             recv_data[recv_count++]=t;
           }
@@ -169,13 +202,14 @@ class BaseNode : public rclcpp::Node
             //RCLCPP_INFO(this->get_logger(), "end frame");
             if(t==FRAME_TAIL){
               // finish receiving a frame
-              if(recv_data[9]==(recv_data[0]^recv_data[1]^recv_data[2]^recv_data[3]^recv_data[4]^recv_data[5]^recv_data[6]^recv_data[7]^recv_data[8])){
+              if(recv_data[10]==(recv_data[0]^recv_data[1]^recv_data[2]^recv_data[3]^recv_data[4]^recv_data[5]^recv_data[6]^recv_data[7]^recv_data[8]^recv_data[9])){
                 // received data frame correct
                 //RCLCPP_INFO(this->get_logger(), "data correct");
                 float _1 = (int16_t)((recv_data[1]<<8)|recv_data[2])/1000.0;
                 float _2 = (int16_t)((recv_data[3]<<8)|recv_data[4])/1000.0;
                 float _3 = (int16_t)((recv_data[5]<<8)|recv_data[6])/1000.0;
                 float _4 = (int16_t)((recv_data[7]<<8)|recv_data[8])/1000.0;
+                recv_pick_cnt = recv_data[9];
                 RCLCPP_INFO(this->get_logger(), "%f < %f < %f < %f",_1,_2,_3,_4);
                 float sampling_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-last_time).count()/1000000.0;
                 last_time = std::chrono::steady_clock::now();
@@ -216,11 +250,10 @@ class BaseNode : public rclcpp::Node
                 }
                 odom_publisher->publish(odom);
                 //RCLCPP_INFO(this->get_logger(), "odom publised");
-
-                
               }else{
                 RCLCPP_INFO(this->get_logger(), "data error");
               }
+              
             }
           }
         }
@@ -230,7 +263,7 @@ class BaseNode : public rclcpp::Node
     
     void cmd_vel_callback(const geometry_msgs::msg::Twist::ConstSharedPtr vel)
     {
-      //RCLCPP_INFO(this->get_logger(), "cmd_vel msg received");
+      RCLCPP_WARN(this->get_logger(), "cmd_vel msg received");
       int16_t transition;
   
       uint8_t send_data[SEND_DATA_SIZE];
@@ -247,9 +280,9 @@ class BaseNode : public rclcpp::Node
       transition = vel->angular.z*1000;
       send_data[6] = transition;
       send_data[5] = transition>>8;
-
-      send_data[7] = send_data[0]^send_data[1]^send_data[2]^send_data[3]^send_data[4]^send_data[5]^send_data[6];
-      send_data[8] = FRAME_TAIL;
+      send_data[7] = command_pick_cnt;
+      send_data[8] = send_data[0]^send_data[1]^send_data[2]^send_data[3]^send_data[4]^send_data[5]^send_data[6]^send_data[7];
+      send_data[9] = FRAME_TAIL;
 
       try{
         arduino_serial.write(send_data, SEND_DATA_SIZE); // Send data to arduino uno via serial port 
@@ -261,6 +294,9 @@ class BaseNode : public rclcpp::Node
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub;
+    rclcpp::Service<std_srvs::srv::Empty>::SharedPtr pick_service;
+    uint8_t command_pick_cnt;
+    uint8_t recv_pick_cnt;
     rclcpp::TimerBase::SharedPtr imu_timer_;
     rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_publisher;
     serial::Serial arduino_serial;
@@ -279,7 +315,8 @@ class BaseNode : public rclcpp::Node
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<BaseNode>());
+  auto a = std::make_shared<BaseNode>();
+  rclcpp::spin(a);
   rclcpp::shutdown();
   return 0;
 }

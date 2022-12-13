@@ -17,6 +17,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 
 include_directories(include)
 
@@ -33,7 +34,7 @@ if(BUILD_TESTING)
 endif()
 
 add_executable(base_node src/base_node.cpp src/serial/serial.cc src/serial/impl/unix.cc src/ICM20948.c)
-ament_target_dependencies(base_node rclcpp geometry_msgs nav_msgs tf2_geometry_msgs tf2 tf2_ros sensor_msgs)
+ament_target_dependencies(base_node rclcpp geometry_msgs nav_msgs tf2_geometry_msgs tf2 tf2_ros sensor_msgs std_srvs)
 
 
 install(
